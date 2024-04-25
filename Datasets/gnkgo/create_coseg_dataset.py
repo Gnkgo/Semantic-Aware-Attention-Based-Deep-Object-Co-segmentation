@@ -35,7 +35,7 @@ pairs_num=0
 
 def get_similar_cat(cat1,cat2):
     global pairs_num
-    same=false
+    same= False
     similar_cat=[]
     for cat in cat1:
         if cat in cat2:
