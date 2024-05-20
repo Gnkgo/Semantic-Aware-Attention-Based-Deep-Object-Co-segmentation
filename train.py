@@ -1,7 +1,7 @@
 import torch
 import torchvision
 from torchvision.models import vgg16
-from torchvision.transforms import Compose, CenterCrop, Normalize, Scale, Resize, ToTensor, ToPILImage
+from torchvision.transforms import Compose, CenterCrop, Normalize, Resize, ToTensor, ToPILImage
 from torch.utils.data import DataLoader
 from torch.autograd import Variable
 from torch.optim import Adam
@@ -21,6 +21,7 @@ import argparse
 from datasets import coseg_val_dataset, coseg_train_dataset
 from model import *
 
+CLUSTER_DRIVE = "/cluster/home/jbrodbec/saab/"
 
 # input arguments
 parser = argparse.ArgumentParser(description='Attention Based Co-segmentation')
@@ -32,23 +33,27 @@ parser.add_argument('--num_worker', default=4, help='numbers of worker')
 parser.add_argument('--batch_size', default=4, help='bacth size')
 parser.add_argument('--epoches', default=1, help='epoches')
 
-parser.add_argument('--train_data', help='training data directory')
-parser.add_argument('--val_data', help='validation data directory')
-parser.add_argument('--train_txt', help='training image pair names txt')
-parser.add_argument('--val_txt', help='validation image pair names txt')
-parser.add_argument('--train_label', help='training label directory')
-parser.add_argument('--val_label', help='validation label directory')
-parser.add_argument('--model_path', help='model saving directory')
+parser.add_argument('--train_data', default = CLUSTER_DRIVE + "Datasets/gnkgo/image/", help='training data directory')
+parser.add_argument('--val_data', default =  CLUSTER_DRIVE + "Datasets/gnkgo/image/", help='validation data directory')
+parser.add_argument('--train_txt', default=  CLUSTER_DRIVE + "Datasets/gnkgo/colabel/train.txt", help='training image pair names txt')
+parser.add_argument('--val_txt', default = CLUSTER_DRIVE + "Datasets/gnkgo/colabel/val.txt", help='validation image pair names txt')
+parser.add_argument('--train_label', default = CLUSTER_DRIVE + "Datasets/gnkgo/colabel/train/", help='training label directory')
+parser.add_argument('--val_label', default =  CLUSTER_DRIVE + "Datasets/gnkgo/colabel/val/", help='validation label directory')
+parser.add_argument('--model_path', default = CLUSTER_DRIVE + "model_path/", help='model saving directory')
 
 args = parser.parse_args()
 
 
-# train_data_dir="/home/u00026/Datasets/PascalVoc/image/"
-# train_label_dir="/home/u00026/Datasets/PascalVoc/colabel/train/"
-# train_txt="/home/u00026/Datasets/PascalVoc/colabel/train.txt"
-# val_data_dir="/home/u00026/Datasets/PascalVoc/image/"
-# val_label_dir="/home/u00026/Datasets/PascalVoc/colabel/val/"
-# val_txt="/home/u00026/Datasets/PascalVoc/colabel/val1600.txt"
+#train_data_dir="Datasets/gnkgo/image/"
+#train_label_dir="Datasets/gnkgo/colabel/train/"
+#train_txt="Datasets/gnkgo/colabel/train.txt"
+#val_data_dir="Datasets/gnkgo/image/"
+#val_label_dir="Datasets/gnkgo/colabel/val/"
+#val_txt="Datasets/gnkgo/colabel/val.txt"
+
+
+
+
 
 # let the label pixels =1 if it >0
 class Relabel:
