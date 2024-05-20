@@ -1,7 +1,7 @@
 import torch
 from torchvision.utils import save_image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
-from torchvision.transforms import Compose, CenterCrop, Normalize, Scale, Resize
+from torchvision.transforms import Compose, CenterCrop, Normalize, Resize
 from torchvision.transforms import ToTensor, ToPILImage
 from torch.utils.data import DataLoader
 from torchvision.utils import save_image

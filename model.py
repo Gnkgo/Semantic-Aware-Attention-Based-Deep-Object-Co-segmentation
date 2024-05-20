@@ -3,13 +3,23 @@ from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import vgg16
-
+from torchvision.models import VGG16_Weights
 
 class model(nn.Module):
     def __init__(self):
         super(model, self).__init__()
-        # encoder
-        self.pretrained_model = vgg16(pretrained=True)
+        
+        VGG16_Weights_path = "/cluster/home/jbrodbec/saab/Semantic-Aware-Attention-Based-Deep-Object-Co-segmentation/vgg16-397923af.pth"
+        
+        # Initialize the VGG16 model without pre-trained weights
+        self.pretrained_model = vgg16(pretrained=False)
+        
+        # Load the state dictionary from the given path
+        state_dict = torch.load(VGG16_Weights_path)  # Ensure this path is valid
+        self.model.load_state_dict(state_dict)  # Load the weights into the model
+        
+        
+        
         self.features, self.classifiers = list(self.pretrained_model.features.children(
         )), list(self.pretrained_model.classifier.children())
         self.features_map = nn.Sequential(*self.features)

@@ -2,7 +2,7 @@ import torch
 import PIL.Image as Image
 from torchvision.utils import save_image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
-from torchvision.transforms import Compose, CenterCrop, Normalize, Scale, Resize
+from torchvision.transforms import Compose, CenterCrop, Normalize, Resize
 from torchvision.transforms import ToTensor, ToPILImage
 from torch.utils.data import DataLoader
 from model import *
@@ -12,7 +12,7 @@ import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--gpu_ids', default=[0,1], help='a list of gpus')
+parser.add_argument('--gpu_ids', default=[0], help='a list of gpus')
 parser.add_argument('--image1', type=str, help="image1 path")
 parser.add_argument('--image2', type=str, help="image2 path")
 parser.add_argument('--output1', type=str, help="output1")

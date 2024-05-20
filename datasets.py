@@ -28,8 +28,8 @@ class coseg_train_dataset(Dataset):
 
     def __getitem__(self, index):
 
-        imagename1 = self.data_dir + self.train_names[index][0] + ".jpg"
-        imagename2 = self.data_dir + self.train_names[index][1] + ".jpg"
+        imagename1 = self.data_dir + self.train_names[index][0] + ".png"
+        imagename2 = self.data_dir + self.train_names[index][1] + ".png"
         labelname1 = self.label_dir + self.train_names[index][2] + ".png"
         labelname2 = self.label_dir + self.train_names[index][3] + ".png"
 
@@ -78,8 +78,8 @@ class coseg_val_dataset(Dataset):
 
     def __getitem__(self, index):
 
-        imagename1 = self.data_dir + self.val_names[index][0] + ".jpg"
-        imagename2 = self.data_dir + self.val_names[index][1] + ".jpg"
+        imagename1 = self.data_dir + self.val_names[index][0] + ".png"
+        imagename2 = self.data_dir + self.val_names[index][1] + ".png"
         labelname1 = self.label_dir + self.val_names[index][2] + ".png"
         labelname2 = self.label_dir + self.val_names[index][3] + ".png"
 

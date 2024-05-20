@@ -21,7 +21,7 @@ import argparse
 from datasets import coseg_val_dataset, coseg_train_dataset
 from model import *
 
-CLUSTER_DRIVE = "/cluster/home/jbrodbec/saab/"
+CLUSTER_DRIVE = "/cluster/home/jbrodbec/saab/saab_code/"
 
 # input arguments
 parser = argparse.ArgumentParser(description='Attention Based Co-segmentation')
@@ -31,7 +31,7 @@ parser.add_argument('--weight_decay', default=0.0005,
 parser.add_argument('--gpu_ids', default=[0,1], help='a list of gpus')
 parser.add_argument('--num_worker', default=4, help='numbers of worker')
 parser.add_argument('--batch_size', default=4, help='bacth size')
-parser.add_argument('--epoches', default=1, help='epoches')
+parser.add_argument('--epoches', default=50, help='epoches')
 
 parser.add_argument('--train_data', default = CLUSTER_DRIVE + "Datasets/gnkgo/image/", help='training data directory')
 parser.add_argument('--val_data', default =  CLUSTER_DRIVE + "Datasets/gnkgo/image/", help='validation data directory')
@@ -54,33 +54,25 @@ args = parser.parse_args()
 
 
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# let the label pixels =1 if it >0
 class Relabel:
     def __call__(self, tensor):
-        assert isinstance(
-            tensor, torch.LongTensor), 'tensor needs to be LongTensor'
+        assert isinstance(tensor, torch.LongTensor), 'tensor needs to be LongTensor'
         tensor[tensor > 0] = 1
         return tensor
-
-# numpy -> tensor
-
 
 class ToLabel:
     def __call__(self, image):
         return torch.from_numpy(np.array(image)).long()
 
-
-
 class Trainer:
     def __init__(self):
         self.args = args
-        self.input_transform = Compose([Resize((512, 512)), ToTensor(
-        ), Normalize([.485, .456, .406], [.229, .224, .225])])
-        self.label_transform = Compose(
-            [Resize((512, 512)), CenterCrop(512), ToLabel(), Relabel()])
-        self.net = model().cuda()
-        self.net = nn.DataParallel(self.net, device_ids=self.args.gpu_ids)
+        self.input_transform = Compose([Resize((512, 512)), ToTensor(), Normalize([.485, .456, .406], [.229, .224, .225])])
+        self.label_transform = Compose([Resize((512, 512)), CenterCrop(512), ToLabel(), Relabel()])
+        self.net = model().to(device)
+        self.net = nn.DataParallel(self.net)
         self.train_data_loader = DataLoader(coseg_train_dataset(self.args.train_data, self.args.train_label, self.args.train_txt, self.input_transform, self.label_transform),
                                             num_workers=self.args.num_worker, batch_size=self.args.batch_size, shuffle=True)
         self.val_data_loader = DataLoader(coseg_val_dataset(self.args.val_data, self.args.val_label, self.args.val_txt, self.input_transform, self.label_transform),
@@ -102,8 +94,7 @@ class Trainer:
         return i, u
 
     def precision(self, output, label):
-        temp = output[label == 1]
-        tp = len(temp[temp == 1])
+        tp = len(output[label == 1])
         p = len(output[output > 0])
         return tp, p
 
@@ -114,14 +105,15 @@ class Trainer:
         intersection = 0
         union = 0
         true_positive = 0
-        positive = 1
+        positive = 0
+
         for i, (image1, image2, label1, label2) in enumerate(self.val_data_loader):
-            image1, image2, label1, label2 = image1.cuda(
-            ), image2.cuda(), label1.cuda(), label2.cuda()
+            image1, image2, label1, label2 = image1.to(device), image2.to(device), label1.to(device), label2.to(device)
             output1, output2 = self.net(image1, image2)
             output1 = torch.argmax(output1, dim=1)
             output2 = torch.argmax(output2, dim=1)
-            # eval output1
+
+            # Evaluate output1
             c, w = self.pixel_accuracy(output1, label1)
             correct += c
             wrong += w
@@ -133,7 +125,8 @@ class Trainer:
             tp, p = self.precision(output1, label1)
             true_positive += tp
             positive += p
-            # eval output2
+
+            # Evaluate output2
             c, w = self.pixel_accuracy(output2, label2)
             correct += c
             wrong += w
@@ -146,41 +139,38 @@ class Trainer:
             true_positive += tp
             positive += p
 
-        print("pixel accuracy: {} correct: {}  wrong: {}".format(
+        print("Pixel accuracy: {} correct: {} wrong: {}".format(
             correct / (correct + wrong), correct, wrong))
-        print("precision: {} true_positive: {} positive: {}".format(
+        print("Precision: {} true_positive: {} positive: {}".format(
             true_positive / positive, true_positive, positive))
-        print("jaccard score: {} intersection: {} union: {}".format(
+        print("Jaccard score: {} intersection: {} union: {}".format(
             intersection / union, intersection, union))
         self.net.train()
+
         return correct / (correct + wrong), intersection / union, true_positive / positive
 
     def train(self):
         for epoch in range(self.args.epoches):
             losses = []
             for i, (image1, image2, label1, label2) in enumerate(self.train_data_loader):
-                image1, image2, label1, label2 = image1.cuda(
-                ), image2.cuda(), label1.cuda(), label2.cuda()
+                image1, image2, label1, label2 = image1.to(device), image2.to(device), label1.to(device), label2.to(device)
 
                 output1, output2 = self.net(image1, image2)
-                # calculate loss from output1 and output2
-                loss = self.loss_func(output1, label1)
-                loss += self.loss_func(output2, label2)
+                loss = self.loss_func(output1, label1) + self.loss_func(output2, label2)
 
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-                losses.append(loss.data.cpu().numpy())
+                losses.append(loss.item())
 
-                if i % 2000 == 0:
+                if i % 100 == 0:
                     print("---------------------------------------------")
-                    print("epoch{} iter {}/{} BCE loss:".format(epoch,
-                                                                i, len(self.train_data_loader), np.mean(losses)))
-                    print("testing......")
+                    print("epoch {} iter {}/{} BCE loss: {}".format(epoch, i, len(self.train_data_loader), np.mean(losses)))
+                    print("Testing......")
                     acc, jac, pre = self.evaluate(self.net, epoch)
+
                 if i % 2000 == 0 and i != 0:
-                    torch.save(self.net.state_dict(),
-                               'epoch{}iter{}.pkl' % (epoch, i))
+                    torch.save(self.net.state_dict(), 'epoch{}iter{}.pkl'.format(epoch, i))
 
 
 if __name__ == "__main__":
